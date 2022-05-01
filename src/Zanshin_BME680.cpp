@@ -94,16 +94,16 @@ BME680_Class::~BME680_Class() {
 /***********************************************************************************************
 ** The "begin()" function is overloaded to allow for variations in I2C and SPI initialization **
 ***********************************************************************************************/
-bool BME680_Class::begin() {
+bool BME680_Class::begin(TwoWire &wirePort) {
   /*!
   * @brief   starts communications with device (overloaded)
   * @details When called with no parameters the I2C protocol with I2C_STANDARD_MODE speed is
              selected. The I2C network is searched for the first BME680 device.
   * return "true" if successful otherwise false
   */
-  return begin(I2C_STANDARD_MODE, 0);  // Initialize I2C with standard speed, allow any i2c address
+  return begin(I2C_STANDARD_MODE, 0, wirePort);  // Initialize I2C with standard speed, allow any i2c address
 }  // of method begin()
-bool BME680_Class::begin(const uint32_t i2cSpeed) {
+bool BME680_Class::begin(const uint32_t i2cSpeed, TwoWire &wirePort) {
   /*!
   @brief   starts communications with device (overloaded)
   @details When called with a 32-bit parameter it is assumed that the I2C protocol is to be used
@@ -111,9 +111,9 @@ bool BME680_Class::begin(const uint32_t i2cSpeed) {
   @param[in] i2cSpeed I2C Speed value
   return "true" if successful otherwise false
   */
-  return begin(i2cSpeed, 0);  // Initialize I2C with given speed, allow any i2c address
+  return begin(i2cSpeed, 0, wirePort);  // Initialize I2C with given speed, allow any i2c address
 }  // of method begin()
-bool BME680_Class::begin(const uint32_t i2cSpeed, const uint8_t i2cAddress) {
+bool BME680_Class::begin(const uint32_t i2cSpeed, const uint8_t i2cAddress, TwoWire &wirePort) {
   /*!
   @brief   starts communications with device (overloaded)
   @details When called with a 32-bit parameter it is assumed that the I2C protocol is to be used
@@ -123,14 +123,15 @@ bool BME680_Class::begin(const uint32_t i2cSpeed, const uint8_t i2cAddress) {
   @param[in] i2cAddress I2C Address, use 0 to self-determine
   return "true" if successful otherwise false
   */
-  Wire.begin();             // Start I2C as master
-  Wire.setClock(i2cSpeed);  // and set bus speed
+  _i2cPort = &wirePort; // Grab which port the user wants us to use
+  _i2cPort->begin();             // Start I2C as master
+  _i2cPort->setClock(i2cSpeed);  // and set bus speed
   _I2CSpeed = i2cSpeed;
   for (_I2CAddress = BME680_I2C_MIN_ADDRESS; _I2CAddress <= BME680_I2C_MAX_ADDRESS;
        _I2CAddress++) {                                  // Loop through all I2C addresses
     if (i2cAddress == 0 || _I2CAddress == i2cAddress) {  // Only check if relevant
-      Wire.beginTransmission(_I2CAddress);               // Check for BME680 here
-      if (Wire.endTransmission() == 0) {                 // We have found a device that could be
+      _i2cPort->beginTransmission(_I2CAddress);               // Check for BME680 here
+      if (_i2cPort->endTransmission() == 0) {                 // We have found a device that could be
         return commonInitialization();                   // a BME680, so perform common init
       }                                                  // of if-then we have found a device
     }               // of if-then check all or a specific address

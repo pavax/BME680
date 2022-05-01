@@ -149,12 +149,12 @@ class BME680_Class {
    * @brief Main BME680 class for the temperature / humidity / pressure sensor
    */
  public:
-  BME680_Class();                           // Class constructor (unused)
-  ~BME680_Class();                          // Class destructor (unused)
-  bool    begin();                          // Start using I2C Communications
-  bool    begin(const uint32_t i2cSpeed);   // I2C with a non-default speed
-  bool    begin(const uint8_t chipSelect);  // Start using either I2C or HW-SPI
-  bool    begin(const uint32_t i2cSpeed, const uint8_t i2cAddress);  // Set speed and I2C Addr.
+  BME680_Class();                                                   // Class constructor (unused)
+  ~BME680_Class();                                                  // Class destructor (unused)
+  bool    begin(TwoWire &wirePort = Wire);                          // Start using I2C Communications
+  bool    begin(const uint32_t i2cSpeed, TwoWire &wirePort = Wire);   // I2C with a non-default speed
+  bool    begin(const uint8_t chipSelect);                           // Start using either I2C or HW-SPI
+  bool    begin(const uint32_t i2cSpeed, const uint8_t i2cAddress, TwoWire &wirePort = Wire);  // Set speed and I2C Addr.
   bool    begin(const uint8_t chipSelect, const uint8_t mosi,        // Start using software SPI
                 const uint8_t miso, const uint8_t sck);
   uint8_t setOversampling(const uint8_t sensor,  // Set enum sensorType Oversampling
@@ -183,6 +183,7 @@ class BME680_Class {
   uint16_t _H1, _H2, _T1, _P1;                                ///< unsigned 16bit configuration vars
   int16_t  _G2, _T2, _P2, _P4, _P5, _P8, _P9;                 ///< signed 16bit configuration vars
   int32_t  _tfine, _Temperature, _Pressure, _Humidity, _Gas;  ///< signed 32bit configuration vars
+  TwoWire *_i2cPort;
 
   /*!
    @section Template functions
@@ -210,13 +211,13 @@ class BME680_Class {
     static uint8_t structSize = sizeof(T);          // Number of bytes in structure
     if (_I2CAddress)                                // Using I2C if address is non-zero
     {                                               //
-      Wire.beginTransmission(_I2CAddress);          // Address the I2C device
-      Wire.write(addr);                             // Send register address to read
-      Wire.endTransmission();                       // Close transmission
-      Wire.requestFrom(_I2CAddress, sizeof(T));     // Request 1 byte of data
-      structSize = Wire.available();                // Use the actual number of bytes
+      _i2cPort->beginTransmission(_I2CAddress);          // Address the I2C device
+      _i2cPort->write(addr);                             // Send register address to read
+      _i2cPort->endTransmission();                       // Close transmission
+      _i2cPort->requestFrom(_I2CAddress, sizeof(T));     // Request 1 byte of data
+      structSize = _i2cPort->available();                // Use the actual number of bytes
       for (uint8_t i = 0; i < structSize; i++)
-        *bytePtr++ = Wire.read();  // loop for each byte to be read
+        *bytePtr++ = _i2cPort->read();  // loop for each byte to be read
     }                              //
     else                           //
     {                              //
@@ -270,11 +271,11 @@ class BME680_Class {
     static uint8_t structSize = sizeof(T);                // Number of bytes in structure
     if (_I2CAddress)                                      // Using I2C if address is non-zero
     {                                                     //
-      Wire.beginTransmission(_I2CAddress);                // Address the I2C device
-      Wire.write(addr);                                   // Send register address to write
+      _i2cPort->beginTransmission(_I2CAddress);                // Address the I2C device
+      _i2cPort->write(addr);                                   // Send register address to write
       for (uint8_t i = 0; i < sizeof(T); i++)
-        Wire.write(*bytePtr++);  // loop for each byte to be written
-      Wire.endTransmission();    // Close transmission
+        _i2cPort->write(*bytePtr++);  // loop for each byte to be written
+      _i2cPort->endTransmission();    // Close transmission
     } else {
       if (_sck == 0)  // if sck is zero then hardware SPI
       {
